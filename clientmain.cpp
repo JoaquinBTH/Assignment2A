@@ -6,7 +6,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <string.h>
 #include <string>
 // Enable if you want debugging to be printed, see examble below.
 // Alternative, pass 
@@ -87,6 +86,62 @@ int main(int argc, char *argv[]){
   {
     printf("Recieve Failed!");
     return 6;
+  }
+  printf(buf);
+  
+  //Start calculating
+  double f1,f2,fresult;
+  int i1,i2,iresult;
+  if(buf[0] == 'f')
+  {
+    char *ptr;
+    f1 = strtod(&buf[5], &ptr);
+    f2 = strtod(&buf[15], NULL);
+
+    //Float operations
+    if(buf[1] == 'a')
+    {
+      printf("fAdd");
+    }
+    else if(buf[1] == 'd')
+    {
+      printf("fDiv");
+    }
+    else if(buf[1] == 'm')
+    {
+      printf("fMul");
+    }
+    else if(buf[1] == 's')
+    {
+      printf("fSub");
+    }
+  }
+  else
+  {
+    //FORTSÄTT ATT TESTA HÄR, OM DET FUNKAR, ÄNDRA BUFFER TILL BUF OCH TA BORT BUFFER.
+    char buffer[15] = "Tes 15 26";
+    i1 = atoi(&buffer[4]);
+    i2 = atoi(&buffer[5]);
+
+    printf("Test i1 %d and i2 %d",i1,i2);
+
+    //Int operations
+    if(strcmp(buf, "add") == 0)
+    {
+      printf("Add");
+    }
+    else if(strcmp(buf, "div") == 0)
+    {
+      printf("Div");
+    }
+    else if(strcmp(buf, "mul") == 0)
+    {
+      printf("Mul");
+    }
+    else if(strcmp(buf, "sub") == 0)
+    {
+      printf("Sub");
+    }
   }
 
   //Close socket
