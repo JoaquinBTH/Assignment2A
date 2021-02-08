@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <string>
 #include <math.h>
-#include <iostream>
 // Enable if you want debugging to be printed, see examble below.
 // Alternative, pass 
 #define DEBUG
