@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string>
+#include <math.h>
 // Enable if you want debugging to be printed, see examble below.
 // Alternative, pass 
 #define DEBUG
@@ -92,57 +93,96 @@ int main(int argc, char *argv[]){
   //Start calculating
   double f1,f2,fresult;
   int i1,i2,iresult;
+  int size = 0;
+  bool floatValue;
   if(buf[0] == 'f')
   {
+    floatValue = true;
     char *ptr;
     f1 = strtod(&buf[5], &ptr);
-    f2 = strtod(&buf[15], NULL);
+    for(int i = 5; i < 15; i++)
+    {
+      if (buf[i] == ' ')
+      {
+        break;
+      }
+      else
+      {
+        size++;
+      }
+    }
+    f2 = strtod(&buf[5 + size], NULL);
 
     //Float operations
     if(buf[1] == 'a')
     {
-      printf("fAdd");
+      fresult = f1 + f2;
     }
     else if(buf[1] == 'd')
     {
-      printf("fDiv");
+      fresult = f1 / f2;
     }
     else if(buf[1] == 'm')
     {
-      printf("fMul");
+      fresult = f1 * f2;
     }
     else if(buf[1] == 's')
     {
-      printf("fSub");
+      fresult = abs(f1-f2);
     }
   }
   else
   {
-    //FORTSÄTT ATT TESTA HÄR, OM DET FUNKAR, ÄNDRA BUFFER TILL BUF OCH TA BORT BUFFER.
-    char buffer[15] = "Tes 15 26";
-    i1 = atoi(&buffer[4]);
-    i2 = atoi(&buffer[5]);
-
-    printf("Test i1 %d and i2 %d",i1,i2);
+    floatValue = false;
+    i1 = atoi(&buf[4]);
+    size = log10(i1) + 1;
+    i2 = atoi(&buf[4 + size]);
 
     //Int operations
-    if(strcmp(buf, "add") == 0)
+    if(buf[0] == 'a')
     {
-      printf("Add");
+      iresult = i1 + i2;
     }
-    else if(strcmp(buf, "div") == 0)
+    else if(buf[0] == 'd')
     {
-      printf("Div");
+      iresult = i1 / i2;
     }
-    else if(strcmp(buf, "mul") == 0)
+    else if(buf[0] == 'm')
     {
-      printf("Mul");
+      iresult = i1 * i2;
     }
-    else if(strcmp(buf, "sub") == 0)
+    else if(buf[0] == 's')
     {
-      printf("Sub");
+      iresult = abs(i1-i2);
     }
   }
+  
+  std::string result;
+  if(floatValue == true)
+  {
+    result = std::to_string(fresult);
+  }
+  else
+  {
+    result = std::to_string(iresult);
+  }
+
+  response = send(sock, result.c_str(), result.size() + 1, 0);
+  if(response == -1)
+  {
+    printf("Response Failed!");
+    return 7;
+  }
+
+  //Confirmation if correct or error
+  memset(buf, 0, 256);
+  recieve = recv(sock, buf, sizeof buf, 0);
+  if(recieve == -1)
+  {
+    printf("Recieve Failed!");
+    return 6;
+  }
+  printf(buf);
 
   //Close socket
   close(sock);
