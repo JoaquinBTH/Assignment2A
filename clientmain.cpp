@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string>
 #include <math.h>
+#include <iostream>
 // Enable if you want debugging to be printed, see examble below.
 // Alternative, pass 
 #define DEBUG
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]){
 
   //Send "OK" as a response to the server
   std::string ok = "OK\n";
-  int response = send(sock, ok.c_str(), ok.size() + 1, 0);
+  int response = send(sock, ok.c_str(), ok.length(), 0);
   if(response == -1)
   {
     printf("Response Failed!");
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]){
     printf("Recieve Failed!");
     return 6;
   }
-  printf(buf);
+  printf("%s",buf);
   
   //Start calculating
   double f1,f2,fresult;
@@ -160,14 +161,14 @@ int main(int argc, char *argv[]){
   std::string result;
   if(floatValue == true)
   {
-    result = std::to_string(fresult);
+    result = std::to_string(fresult) + "\n";
   }
   else
   {
-    result = std::to_string(iresult);
+    result = std::to_string(iresult) + "\n";
   }
 
-  response = send(sock, result.c_str(), result.size() + 1, 0);
+  response = send(sock, result.c_str(), result.length(), 0);
   if(response == -1)
   {
     printf("Response Failed!");
@@ -180,9 +181,9 @@ int main(int argc, char *argv[]){
   if(recieve == -1)
   {
     printf("Recieve Failed!");
-    return 6;
+    return 8;
   }
-  printf(buf);
+  printf("%s",buf);
 
   //Close socket
   close(sock);
