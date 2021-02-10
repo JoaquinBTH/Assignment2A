@@ -17,7 +17,6 @@
 #include <calcLib.h>
 
 int main(int argc, char *argv[]){
-
   /*
     Read first input, assumes <ip>:<port> syntax, convert into one string (Desthost) and one integer (port). 
      Atm, works only on dotted notation, i.e. IPv4 and DNS. IPv6 does not work if its using ':'. 
@@ -56,19 +55,27 @@ int main(int argc, char *argv[]){
 
   //Create buffer
   char buf[256];
-  memset(buf, 0, 256);
-
+  int recieve;
+  
   //Recieve a message from the server
-  int recieve = recv(sock, buf, sizeof buf, 0);
-  if(recieve == -1)
+  while(1)
   {
-    printf("Recieve Failed!");
-    return 3;
-  }
-  else if(strcmp(buf, "TEXT TCP 1.0\n") == 0)
-  {
-    printf("Wrong Client Application!");
-    return 4;
+    memset(buf, 0, 256);
+    recieve = recv(sock, buf, sizeof buf, 0);
+    if(recieve == -1)
+    {
+      printf("Recieve Failed!");
+      return 3;
+    }
+    else if(strcmp(&buf[strlen(buf) - 1], "\n") == 0)
+    {
+      break;
+    }
+    else
+    {
+      printf("Wrong Client Application");
+      return 4;
+    }
   }
 
   //Send "OK" as a response to the server
