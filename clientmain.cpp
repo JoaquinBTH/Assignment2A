@@ -17,6 +17,11 @@
 #include <calcLib.h>
 
 int main(int argc, char *argv[]){
+  if(argc != 2)
+  {
+    printf("Usage: %s <ip>:<port> \n", argv[0]);
+    exit(1);
+  }
   /*
     Read first input, assumes <ip>:<port> syntax, convert into one string (Desthost) and one integer (port). 
      Atm, works only on dotted notation, i.e. IPv4 and DNS. IPv6 does not work if its using ':'. 
@@ -58,6 +63,9 @@ int main(int argc, char *argv[]){
   int recieve;
   
   //Recieve a message from the server
+
+  //Ta bort while loopen ifall det blir komplettering!!!!!!!!
+  
   while(1)
   {
     memset(buf, 0, 256);
