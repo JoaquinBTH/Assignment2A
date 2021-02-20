@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ctime>
 
 // Included to get the support library
 #include <calcLib.h>
@@ -19,6 +20,75 @@
 
 
 using namespace std;
+
+void randomCalculation(char buf[], char result[])
+{
+  int randomNumber = rand() % 8 + 1;
+  int i1, i2, iresult;
+  double f1, f2, fresult;
+  i1 = rand() % 100 + 1;
+  i2 = rand() % 100 + 1;
+
+  f1 = (double)rand() / (RAND_MAX/100);
+  f2 = (double)rand() / (RAND_MAX/100);
+  if(randomNumber == 1)
+  {
+    //Add
+    iresult = i1 + i2;
+    sprintf(buf, "add %d %d\n", i1, i2);
+    sprintf(result, "%d\n", iresult);
+  }
+  else if(randomNumber == 2)
+  {
+    //Multiplication
+    iresult = i1 * i2;
+    sprintf(buf, "mul %d %d\n", i1, i2);
+    sprintf(result, "%d\n", iresult);
+  }
+  else if(randomNumber == 3)
+  {
+    //Division
+    iresult = i1 / i2;
+    sprintf(buf, "div %d %d\n", i1, i2);
+    sprintf(result, "%d\n", iresult);
+  }
+  else if(randomNumber == 4)
+  {
+    //Subtraction
+    iresult = abs(i1 - i2);
+    sprintf(buf, "sub %d %d\n", i1, i2);
+    sprintf(result, "%d\n", iresult);
+  }
+  else if(randomNumber == 5)
+  {
+    //fAdd
+    fresult = f1 + f2;
+    sprintf(buf, "fadd %8.8g %8.8g\n", f1, f2);
+    sprintf(result, "%8.8g\n", fresult);
+  }
+  else if(randomNumber == 6)
+  {
+    //fMultiplication
+    fresult = f1 * f2;
+    sprintf(buf, "fmul %8.8g %8.8g\n", f1, f2);
+    sprintf(result, "%8.8g\n", fresult);
+  }
+  else if(randomNumber == 7)
+  {
+    //fDivision
+    fresult = f1 / f2;
+    sprintf(buf, "fdiv %8.8g %8.8g\n", f1, f2);
+    sprintf(result, "%8.8g\n", fresult);
+  }
+  else if(randomNumber == 8)
+  {
+    //fSubtraction
+    fresult = abs(f1 - f2);
+    sprintf(buf, "fsub %8.8g %8.8g\n", f1, f2);
+    sprintf(result, "%8.8g\n", fresult);
+  }
+}
+
 
 
 int main(int argc, char *argv[]){
@@ -39,6 +109,8 @@ int main(int argc, char *argv[]){
   printf("Host %s, and port %d.\n",Desthost,port);
 #endif
 
+  srand(unsigned(time(0)));
+
   int backLogSize = 5;
   int yes = 1;
 
@@ -54,6 +126,17 @@ int main(int argc, char *argv[]){
   if(setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
   {
     perror("setsockopt failed!\n");
+    exit(1);
+  }
+
+  struct timeval time;
+  time.tv_sec = 5;
+  time.tv_usec = 0;
+  int socketTimeOut;
+  socketTimeOut = setsockopt(serverSock, SOL_SOCKET, SO_RCVTIMEO, &time, sizeof time);
+  if (socketTimeOut == -1)
+  {
+    printf("Socket option failed! %s\n", strerror(errno));
     exit(1);
   }
 
@@ -78,22 +161,100 @@ int main(int argc, char *argv[]){
 
   int clientSock;
   char buf[256];
+  char result[20];
   int recieve, response;
 
-  while(1)
+  int loops = 0;
+  while(loops < 1)
   {
     clientSock = accept(serverSock, (sockaddr*)&clientAddr, &client_size);
     if(clientSock == -1)
     {
       perror("Accept failed!\n");
+      loops++;
       continue;
     }
     printf("Client connected!\n");
     
+    //Send protocol message
     memset(&buf, 0, 256);
     strcpy(buf, "TEXT TCP 1.0\n\n");
     response = send(clientSock, &buf, sizeof (buf), 0);
+    if(response == -1)
+    {
+      perror("Send failed!\n");
+      continue;
+    }
+
+    //Recieve message
+    memset(&buf, 0, 256);
+    recieve = recv(clientSock, &buf, sizeof(buf), 0);
+    if(recieve == -1)
+    {
+      perror("Recieve failed!\n");
+      continue;
+    }
+    
+    //Check if message is "OK\n"
+    if(strcmp(buf, "OK\n") == 0)
+    {
+      printf("OK was recieved!\n");
+    }
+    else
+    {
+      printf("OK was not recieved!\n");
+      continue;
+    }
+
+    //Give buffer random calculation and calculate the result
+    memset(&buf, 0, 256);
+    memset(&result, 0, 20);
+    randomCalculation(buf, result);
+
+    //Send calculations to client
+    response = send(clientSock, &buf, sizeof(buf), 0);
+    if(response == -1)
+    {
+      perror("Send failed!\n");
+      continue;
+    }
+
+    //Recieve answer in form of a number
+    memset(&buf, 0, 256);
+    recieve = recv(clientSock, &buf, sizeof(buf), 0);
+    if(recieve == -1)
+    {
+      perror("Recieve failed!\n");
+      continue;
+    }
+
+    //Check if the answer was correct
+    double D, x, y;
+    x = strtod(buf, NULL);
+    y = strtod(result, NULL);
+    D = abs(x - y);
+    if(strcmp(buf, result) == 0 || D < 0.0001)
+    {
+      printf("Answer is correct!\n");
+      memset(&buf, 0, 256);
+      strcpy(buf, "OK\n");
+    }
+    else
+    {
+      printf("Wrong answer\n");
+      memset(&buf, 0, 256);
+      strcpy(buf, "NOT OK\n");
+    }
+
+    //Send OK or NOT OK
+    response = send(clientSock, &buf, sizeof(buf), 0);
+    if(response == -1)
+    {
+      perror("Send failed!\n");
+    }
   }
 
+  close(clientSock);
+  close(serverSock);
   return 0;
 }
