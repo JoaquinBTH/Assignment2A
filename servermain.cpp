@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
+#include <netdb.h>
 #include <ctime>
 
 // Included to get the support library
@@ -124,36 +125,48 @@ int main(int argc, char *argv[])
   int backLogSize = 5;
   int yes = 1;
 
-  int serverSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  struct addrinfo hint, *servinfo, *p;
+  int rv;
+  int serverSock;
 
-  struct sockaddr_in serverAddr;
-  memset(&serverAddr, 0, sizeof(serverAddr));
+  memset(&hint, 0, sizeof (hint));
+  hint.ai_family = AF_UNSPEC;
+  hint.ai_socktype = SOCK_STREAM;
 
-  serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port=htons(port);
-  inet_aton(Desthost, (in_addr*)&serverAddr.sin_addr.s_addr);
+  if ((rv = getaddrinfo(Desthost, Destport, &hint, &servinfo)) != 0)
+  {
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    return 1;
+  }
+  for (p = servinfo; p != NULL; p = p->ai_next)
+  {
+    if ((serverSock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+    {
+      printf("Socket creation failed.\n");
+      continue;
+    }
+    printf("Socket Created.\n");
+    rv = bind(serverSock, p->ai_addr, p->ai_addrlen);
+    if(rv == -1)
+    {
+      perror("Bind failed!\n");
+      close(serverSock);
+      continue;
+    }
+    break;
+  }
+
+  freeaddrinfo(servinfo);
+
+  if (p == NULL)
+  {
+    fprintf(stderr, "Client failed to create an apporpriate socket.\n");
+    exit(1);
+  }
 
   if(setsockopt(serverSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
   {
     perror("setsockopt failed!\n");
-    exit(1);
-  }
-
-  struct timeval time;
-  time.tv_sec = 5;
-  time.tv_usec = 0;
-  int socketTimeOut;
-  socketTimeOut = setsockopt(serverSock, SOL_SOCKET, SO_RCVTIMEO, &time, sizeof time);
-  if (socketTimeOut == -1)
-  {
-    printf("Socket option failed! %s\n", strerror(errno));
-    exit(1);
-  }
-
-  int rv = bind(serverSock, (sockaddr*)&serverAddr, sizeof(serverAddr));
-  if(rv == -1)
-  {
-    perror("Bind failed!\n");
     exit(1);
   }
 
@@ -184,6 +197,18 @@ int main(int argc, char *argv[])
       loops++;
       continue;
     }
+
+    struct timeval time;
+    time.tv_sec = 5;
+    time.tv_usec = 0;
+    int socketTimeOut;
+    socketTimeOut = setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO, &time, sizeof time);
+    if (socketTimeOut == -1)
+    {
+      printf("Socket option failed! %s\n", strerror(errno));
+      exit(1);
+    }
+
     printf("Client connected!\n");
     
     //Send protocol message
@@ -201,7 +226,9 @@ int main(int argc, char *argv[])
     recieve = recv(clientSock, &buf, sizeof(buf), 0);
     if(recieve == -1)
     {
-      perror("Recieve failed!\n");
+      printf("Client failed to reply!\n");
+      sprintf(buf, "ERROR TO\n");
+      send(clientSock, &buf, sizeof(buf), 0);
       continue;
     }
     
@@ -234,7 +261,9 @@ int main(int argc, char *argv[])
     recieve = recv(clientSock, &buf, sizeof(buf), 0);
     if(recieve == -1)
     {
-      perror("Recieve failed!\n");
+      printf("Client failed to reply!\n");
+      sprintf(buf, "ERROR TO\n");
+      send(clientSock, &buf, sizeof(buf), 0);
       continue;
     }
 
